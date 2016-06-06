@@ -28,6 +28,10 @@ module Cinch
           debug "Identifying with UserServ"
           identify_userserv
         else
+        when :undernet
+          debug "Identifying with X on Undernet"
+          identify_undernet
+        else
           debug "Not going to identify with unknown type #{config[:type].inspect}"
         end
       end
@@ -80,6 +84,16 @@ module Cinch
         end
       end
 
+      match(/^AUTHENTICATION SUCCESSFUL as/, use_prefix: false, use_suffix: false, react_on: :notice, method: :identify_undernet)
+      def identify_undernet(m)
+        service_name = config[:service_name] || "X @ undernet"
+        service_name = service_name.split("@").first
+        if m.user == User(service_name) && config[:type] == :undernet
+          debug "Identified with X @ undernet"
+          @bot.handlers.dispatch :identified, m
+        end
+      end
+
       private
       def identify_dalnet
         User("Nickserv@services.dal.net").send("identify %s" % [config[:password]])
@@ -111,6 +125,10 @@ module Cinch
       def identify_userserv
         service_name = config[:service_name] || "UserServ"
         User(service_name).send("LOGIN %s %s" % [config[:username], config[:password]])
+      end
+
+      def identify_undernet
+        User("x@channels.undernet.org").send("LOGIN %s %s" % [config[:username], config[:password]])
       end
     end
   end
